@@ -1,5 +1,6 @@
 """ポケモン風の簡単なターン制バトルゲーム。"""
 
+import os
 import random
 import sys
 
@@ -22,6 +23,7 @@ ORANGE = (240, 160, 65)
 GREEN = (80, 190, 100)
 
 COMMANDS = ["たたかう", "まもる"]
+PLAYER_IMAGE_SIZE = (96, 96)
 
 
 class Monster:
@@ -51,6 +53,20 @@ def create_new_battle():
 def make_font(size):
     """WindowsのMS Gothicでフォントを作る。"""
     return pygame.font.SysFont("MS Gothic", size)
+
+
+def load_player_image():
+    """figフォルダの画像を読み込み、左右反転して返す。"""
+    image_path = os.path.join(os.path.dirname(__file__), "fig", "3.png")
+
+    try:
+        image = pygame.image.load(image_path).convert_alpha()
+    except (FileNotFoundError, pygame.error):
+        return None
+
+    image = pygame.transform.smoothscale(image, PLAYER_IMAGE_SIZE)
+    image = pygame.transform.flip(image, True, False)
+    return image
 
 
 def draw_text(screen, text, font, color, x, y):
@@ -84,25 +100,28 @@ def draw_hp_bar(screen, x, y, width, height, hp, max_hp):
 
 def draw_status_panel(screen, monster, x, y, font):
     """名前とHPを表示するパネルを描画する。"""
-    pygame.draw.rect(screen, PANEL_COLOR, (x, y, 260, 80))
-    pygame.draw.rect(screen, PANEL_EDGE, (x, y, 260, 80), 3)
+    pygame.draw.rect(screen, PANEL_COLOR, (x, y, 260, 95))
+    pygame.draw.rect(screen, PANEL_EDGE, (x, y, 260, 95), 3)
     draw_text(screen, monster.name, font, BLACK, x + 15, y + 10)
     draw_text(screen, f"HP {monster.hp}/{monster.max_hp}", font, BLACK, x + 15, y + 40)
-    draw_hp_bar(screen, x + 115, y + 45, 120, 16, monster.hp, monster.max_hp)
+    draw_hp_bar(screen, x + 15, y + 68, 220, 14, monster.hp, monster.max_hp)
 
 
-def draw_characters(screen):
+def draw_characters(screen, player_image):
     """プレイヤーと敵を図形で描画する。"""
     pygame.draw.ellipse(screen, ENEMY_COLOR, (555, 135, 110, 90))
     pygame.draw.ellipse(screen, BLACK, (555, 135, 110, 90), 3)
     pygame.draw.circle(screen, BLACK, (585, 170), 6)
     pygame.draw.circle(screen, BLACK, (635, 170), 6)
 
-    player_rect = pygame.Rect(155, 330, 90, 90)
-    pygame.draw.rect(screen, PLAYER_COLOR, player_rect)
-    pygame.draw.rect(screen, BLACK, player_rect, 3)
-    pygame.draw.circle(screen, BLACK, (player_rect.x + 28, player_rect.y + 35), 6)
-    pygame.draw.circle(screen, BLACK, (player_rect.x + 62, player_rect.y + 35), 6)
+    if player_image is None:
+        player_rect = pygame.Rect(155, 330, 90, 90)
+        pygame.draw.rect(screen, PLAYER_COLOR, player_rect)
+        pygame.draw.rect(screen, BLACK, player_rect, 3)
+        pygame.draw.circle(screen, BLACK, (player_rect.x + 28, player_rect.y + 35), 6)
+        pygame.draw.circle(screen, BLACK, (player_rect.x + 62, player_rect.y + 35), 6)
+    else:
+        screen.blit(player_image, (150, 315))
 
 
 def draw_commands(screen, selected_command, font):
@@ -123,7 +142,9 @@ def draw_message_box(screen, message, font):
     draw_multiline_text(screen, message, font, BLACK, 60, 438, 28)
 
 
-def draw_battle_screen(screen, player, enemy, selected_command, message, font):
+def draw_battle_screen(
+    screen, player, enemy, selected_command, message, font, player_image
+):
     """バトル画面を描画する。"""
     screen.fill(SKY_BLUE)
     pygame.draw.rect(screen, GRASS_GREEN, (0, 385, WIDTH, 215))
@@ -132,7 +153,7 @@ def draw_battle_screen(screen, player, enemy, selected_command, message, font):
 
     draw_status_panel(screen, enemy, 45, 35, font)
     draw_status_panel(screen, player, 490, 305, font)
-    draw_characters(screen)
+    draw_characters(screen, player_image)
     draw_message_box(screen, message, font)
     draw_commands(screen, selected_command, font)
 
@@ -190,6 +211,7 @@ def main():
 
     font = make_font(24)
     large_font = make_font(42)
+    player_image = load_player_image()
 
     player, enemy = create_new_battle()
     game_state = "battle"
@@ -232,7 +254,9 @@ def main():
                 sys.exit()
 
         if game_state in ["battle", "lose"]:
-            draw_battle_screen(screen, player, enemy, selected_command, message, font)
+            draw_battle_screen(
+                screen, player, enemy, selected_command, message, font, player_image
+            )
         elif game_state == "clear":
             draw_clear_screen(screen, large_font, font)
 
