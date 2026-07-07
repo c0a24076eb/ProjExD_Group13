@@ -12,6 +12,7 @@ HEIGHT = 600
 FPS = 60
 
 BLACK = (30, 30, 30)
+WHITE = (255, 255, 255)# 追加
 SKY_BLUE = (190, 225, 245)
 GRASS_GREEN = (95, 180, 105)
 PANEL_COLOR = (250, 248, 230)
@@ -68,6 +69,21 @@ def load_player_image():
     image = pygame.transform.flip(image, True, False)
     return image
 
+# 負け画像の読み込み
+def load_lose_image():
+    """figフォルダの画像を読み込み、画面サイズに合わせて返す。"""
+    image_path = os.path.join(os.path.dirname(__file__), "fig", "lose.jpg")
+
+    try:
+        # 画像の読み込みのみを行う
+        image = pygame.image.load(image_path).convert()
+    except (FileNotFoundError, pygame.error):
+        # 読み込みに失敗した場合は None を返す
+        return None
+
+    # 読み込み成功後、画面サイズに合わせてリサイズする
+    image = pygame.transform.smoothscale(image, (WIDTH, HEIGHT))
+    return image
 
 def draw_text(screen, text, font, color, x, y):
     """文字を1行だけ描画する。"""
@@ -169,6 +185,25 @@ def draw_clear_screen(screen, large_font, font):
     draw_text(screen, "ゲームクリア！", large_font, BLACK, 255, 220)
     draw_text(screen, "Enterキーで終了", font, BLACK, 305, 330)
 
+#ゲームオーバー画面の描画
+def draw_lose_screen(screen, lose_image, large_font, font):
+    """負けた時の画面を描画する。"""
+    if lose_image:
+        screen.blit(lose_image, (0, 0))
+    else:
+        screen.fill(BLACK)
+    
+    # 背景が明るい場合でも文字が見えるように半透明の帯を引く
+    overlay = pygame.Surface((WIDTH, 120))
+    overlay.set_alpha(160)
+    overlay.fill(BLACK)
+    screen.blit(overlay, (0, 220))
+
+    draw_text(screen, "こうかとん は 丸焼きに されてしまった...", font, WHITE, 180, 240)
+    draw_text(screen, "GAME OVER", large_font, RED, 280, 280)
+    draw_text(screen, "Enterキーで終了", font, WHITE, 310, 350)
+
+# タイトル画面の描画処理
 def draw_title_screen(screen, large_font, font):
     """タイトル画面を描画する。"""
     screen.fill(SKY_BLUE)
@@ -231,6 +266,7 @@ def main():
     font = make_font(24)
     large_font = make_font(42)
     player_image = load_player_image()
+    lose_image = load_lose_image() # 追加：負け画像のロード
 
     player, enemy = create_new_battle()
     # 変更点：初期状態を「title」にする
@@ -281,21 +317,23 @@ def main():
 
                         if player.hp <= 0:
                             game_state = "lose"
-                            message = message + "\n負けました。Enterキーで終了"
+                            
 
             elif game_state in ["clear", "lose"] and event.key == pygame.K_RETURN:
                 pygame.quit()
                 sys.exit()
 
         # 描画部分の切り替え
-        if game_state == "title":
+        if game_state == "title":# タイトル画面の描画
             draw_title_screen(screen, large_font, font)
-        elif game_state in ["battle", "lose"]:
+        elif game_state == "battle":
             draw_battle_screen(
                 screen, player, enemy, selected_command, message, font, player_image
             )
         elif game_state == "clear":
             draw_clear_screen(screen, large_font, font)
+        elif game_state == "lose": #負け画面の描画
+            draw_lose_screen(screen, lose_image, large_font, font)
 
         pygame.display.update()
         clock.tick(FPS)
