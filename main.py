@@ -55,7 +55,7 @@ class Monster:
         if self.hp < 0:
             self.hp = 0
 
-    def heal(self, heal_point):
+    def heal(self, heal_point:int) -> int:
         """HPを回復し、実際に回復した量を返す。"""
         old_hp = self.hp
         self.hp += heal_point
@@ -187,7 +187,13 @@ def draw_clear_screen(screen, large_font, font):
     draw_text(screen, "Enterキーで終了", font, BLACK, 305, 330)
 
 
-def player_action(command, player, enemy, enemy_is_burned, used_protect_last_turn):
+def player_action(
+    command: str,
+    player: Monster,
+    enemy: Monster,
+    enemy_is_burned: bool,
+    used_protect_last_turn: bool
+) -> tuple[str, bool, bool, bool]:
     """プレイヤーが選んだコマンドを処理する。"""
     is_protecting = False
 
@@ -249,7 +255,7 @@ def player_action(command, player, enemy, enemy_is_burned, used_protect_last_tur
     )
 
 
-def apply_burn_damage(enemy, enemy_is_burned):
+def apply_burn_damage(enemy: Monster, enemy_is_burned: bool) -> str:
     """やけど状態の敵に固定ダメージを与える。"""
     if not enemy_is_burned:
         return ""
