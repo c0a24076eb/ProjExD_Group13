@@ -5,7 +5,7 @@ import random
 import sys
 
 import pygame
-
+os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
 WIDTH = 800
 HEIGHT = 600
@@ -157,6 +157,10 @@ def draw_battle_screen(
     draw_message_box(screen, message, font)
     draw_commands(screen, selected_command, font)
 
+    #最初のメッセージが出ている間はコマンドを出さない
+    if message != "野生のモンスターがあらわれた！":
+        draw_commands(screen, selected_command, font)
+
 
 def draw_clear_screen(screen, large_font, font):
     """ゲームクリア画面を描画する。"""
@@ -165,6 +169,21 @@ def draw_clear_screen(screen, large_font, font):
     draw_text(screen, "ゲームクリア！", large_font, BLACK, 255, 220)
     draw_text(screen, "Enterキーで終了", font, BLACK, 305, 330)
 
+def draw_title_screen(screen, large_font, font):
+    """タイトル画面を描画する。"""
+    screen.fill(SKY_BLUE)
+    pygame.draw.rect(screen, GRASS_GREEN, (0, 420, WIDTH, 180))
+    # タイトルの描画（中央寄せ）
+    title_text = "こうかとんモンスターバトル"
+    title_img = large_font.render(title_text, True, BLACK)
+    title_rect = title_img.get_rect(center=(WIDTH // 2, 200))
+    screen.blit(title_img, title_rect)
+    # 案内の描画（中央寄せ）
+    info_text = "Enterキーで はじめる"
+    info_img = font.render(info_text, True, BLACK)
+    info_rect = info_img.get_rect(center=(WIDTH // 2, 350))
+    screen.blit(info_img, info_rect)
+    
 
 def player_action(command, player, enemy, is_protecting):
     """プレイヤーが選んだコマンドを処理する。"""
@@ -214,9 +233,11 @@ def main():
     player_image = load_player_image()
 
     player, enemy = create_new_battle()
-    game_state = "battle"
+    # 変更点：初期状態を「title」にする
+    game_state = "title"
+    # 暴発防止のため、最初は「あらわれた！」というメッセージにする
+    message = "野生のモンスターがあらわれた！"
     selected_command = 0
-    message = "コマンドを選んでください。"
     is_protecting = False
 
     while True:
@@ -227,17 +248,30 @@ def main():
 
             if event.type != pygame.KEYDOWN:
                 continue
+            
+            # タイトル画面での操作を追加
+            if game_state == "title":
+                if event.key == pygame.K_RETURN:
+                    game_state = "battle"
 
-            if game_state == "battle":
-                if event.key == pygame.K_UP:
-                    selected_command = (selected_command - 1) % len(COMMANDS)
-                elif event.key == pygame.K_DOWN:
-                    selected_command = (selected_command + 1) % len(COMMANDS)
-                elif event.key == pygame.K_RETURN:
-                    command = COMMANDS[selected_command]
-                    message, is_protecting = player_action(
-                        command, player, enemy, is_protecting
-                    )
+            elif game_state == "battle":
+                # コマンド選択ができるのは、最初のメッセージが終わった後だけにする
+                if message != "野生のモンスターがあらわれた！":
+                    if event.key == pygame.K_UP:
+                        selected_command = (selected_command - 1) % len(COMMANDS)
+                    elif event.key == pygame.K_DOWN:
+                        selected_command = (selected_command + 1) % len(COMMANDS)
+                    
+                if event.key == pygame.K_RETURN:
+                    #メッセージが「あらわれた！」なら、コマンド選択に切り替えるだけにする
+                    if message == "野生のモンスターがあらわれた！":
+                        message = "コマンドを選んでください。"
+                        continue
+                    else:
+                        command = COMMANDS[selected_command]
+                        message, is_protecting = player_action(
+                            command, player, enemy, is_protecting
+                        )
 
                     if enemy.hp <= 0:
                         game_state = "clear"
@@ -253,7 +287,10 @@ def main():
                 pygame.quit()
                 sys.exit()
 
-        if game_state in ["battle", "lose"]:
+        # 描画部分の切り替え
+        if game_state == "title":
+            draw_title_screen(screen, large_font, font)
+        elif game_state in ["battle", "lose"]:
             draw_battle_screen(
                 screen, player, enemy, selected_command, message, font, player_image
             )
