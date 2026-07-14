@@ -1,4 +1,5 @@
 # こうかとんモンスターバトル
+![title](fig/screen_shot.png)
 
 ## 実行環境の必要条件
 
