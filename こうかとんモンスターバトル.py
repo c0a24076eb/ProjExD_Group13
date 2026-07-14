@@ -377,6 +377,7 @@ def enemy_action(player, is_protecting, is_mega):
 def main():
     """ゲーム全体を動かすメイン関数。"""
     pygame.init()
+    pygame.mixer.init()
 
     screen = pygame.display.set_mode((WIDTH, HEIGHT))
     pygame.display.set_caption("こうかとんモンスターバトル")
@@ -398,6 +399,26 @@ def main():
     enemy_is_burned = False
     used_protect_last_turn = False
     is_mega = False
+
+    sound_dir = os.path.join(os.path.dirname(__file__), "sounds")
+    bgm_path = os.path.join(sound_dir, "bgm.mp3")
+    cursor_path = os.path.join(sound_dir, "decide.wav")
+    decide_path = os.path.join(sound_dir, "scrol.wav")
+    # BGMの読み込みと再生（ループ回数を -1 にして無限ループ再生）
+    try:
+        pygame.mixer.music.load(bgm_path)
+        pygame.mixer.music.play(loops=-1)
+    except (pygame.error, FileNotFoundError):
+        print("BGMファイルの読み込みに失敗したか、ファイルが存在しません。")
+
+    # 効果音（Soundオブジェクト）の作成
+    cursor_sound = None
+    decide_sound = None
+    try:
+        cursor_sound = pygame.mixer.Sound(cursor_path)
+        decide_sound = pygame.mixer.Sound(decide_path)
+    except (pygame.error, FileNotFoundError):
+        print("効果音ファイルの読み込みに失敗したか、ファイルが存在しません。")
 
     while True:
         for event in pygame.event.get():
@@ -423,14 +444,20 @@ def main():
                         message = "コマンドを選んでください。"
                     continue    
                 if event.key == pygame.K_UP:
-                        selected_command = (selected_command - 1) % len(COMMANDS)
-                elif event.key == pygame.K_DOWN:
-                        selected_command = (selected_command + 1) % len(COMMANDS)
+                    selected_command = (selected_command - 1) % len(COMMANDS)
+                    if cursor_sound: 
+                        cursor_sound.play()
 
+                elif event.key == pygame.K_DOWN:
+                    selected_command = (selected_command + 1) % len(COMMANDS)
+                    if cursor_sound: 
+                        cursor_sound.play()
+    
                 elif event.key == pygame.K_RETURN:
                     if is_mega and COMMANDS[selected_command] == "メガシンカ":
                         continue
-
+                    if decide_sound: 
+                        decide_sound.play()
                     command = COMMANDS[selected_command]
 
                     (
@@ -472,6 +499,7 @@ def main():
                     if enemy.hp <= 0:
                         game_state = "clear"
                         continue
+                        pygame.mixer.music.stop()
 
                     burn_message = apply_burn_damage(enemy, enemy_is_burned)
                     if burn_message:
@@ -480,6 +508,7 @@ def main():
                     if enemy.hp <= 0:
                         message = "\n".join(turn_messages)
                         game_state = "clear"
+                        pygame.mixer.music.stop()
                         continue
 
                     enemy_message, is_protecting = enemy_action(
@@ -493,19 +522,13 @@ def main():
 
                     if player.hp <= 0:
                         game_state = "lose"
-                
-                
+                        pygame.mixer.music.stop()
 
                     if enemy.hp <= 0:
                         message = "\n".join(turn_messages)
                         game_state = "clear"
                         continue
                     
-                    
-                                
-
-
-
             elif game_state in ["clear", "lose"] and event.key == pygame.K_RETURN:
                 pygame.quit()
                 sys.exit()
