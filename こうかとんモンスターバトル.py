@@ -288,6 +288,8 @@ def enemy_action(player, is_protecting):
 def main():
     """ゲーム全体を動かすメイン関数。"""
     pygame.init()
+    pygame.mixer.init()
+
     screen = pygame.display.set_mode((WIDTH, HEIGHT))
     pygame.display.set_caption("ターン制モンスターバトル")
     clock = pygame.time.Clock()
@@ -306,6 +308,26 @@ def main():
     enemy_is_burned = False
     used_protect_last_turn = False
 
+    sound_dir = os.path.join(os.path.dirname(__file__), "sounds")
+    bgm_path = os.path.join(sound_dir, "bgm.mp3")
+    cursor_path = os.path.join(sound_dir, "decide.wav")
+    decide_path = os.path.join(sound_dir, "scrol.wav")
+    # BGMの読み込みと再生（ループ回数を -1 にして無限ループ再生）
+    try:
+        pygame.mixer.music.load(bgm_path)
+        pygame.mixer.music.play(loops=-1)
+    except (pygame.error, FileNotFoundError):
+        print("BGMファイルの読み込みに失敗したか、ファイルが存在しません。")
+
+    # 効果音（Soundオブジェクト）の作成
+    cursor_sound = None
+    decide_sound = None
+    try:
+        cursor_sound = pygame.mixer.Sound(cursor_path)
+        decide_sound = pygame.mixer.Sound(decide_path)
+    except (pygame.error, FileNotFoundError):
+        print("効果音ファイルの読み込みに失敗したか、ファイルが存在しません。")
+
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -318,9 +340,17 @@ def main():
             if game_state == "battle":
                 if event.key == pygame.K_UP:
                     selected_command = (selected_command - 1) % len(COMMANDS)
+                    if cursor_sound: 
+                        cursor_sound.play()
+
                 elif event.key == pygame.K_DOWN:
                     selected_command = (selected_command + 1) % len(COMMANDS)
+                    if cursor_sound: 
+                        cursor_sound.play()
+
                 elif event.key == pygame.K_RETURN:
+                    if decide_sound: 
+                        decide_sound.play()
                     command = COMMANDS[selected_command]
                     message, is_protecting, enemy_is_burned, used_protect_last_turn = (
                         player_action(
@@ -334,6 +364,7 @@ def main():
 
                     if enemy.hp <= 0:
                         game_state = "clear"
+                        pygame.mixer.music.stop()  # BGMを停止
                     else:
                         # やけど中の敵は、プレイヤー行動後に固定ダメージを受ける
                         burn_message = apply_burn_damage(enemy, enemy_is_burned)
@@ -342,6 +373,7 @@ def main():
 
                         if enemy.hp <= 0:
                             game_state = "clear"
+                            pygame.mixer.music.stop()  # BGMを停止
                         else:
                             enemy_message, is_protecting = enemy_action(
                                 player, is_protecting
@@ -350,6 +382,7 @@ def main():
 
                             if player.hp <= 0:
                                 game_state = "lose"
+                                pygame.mixer.music.stop()  # BGMを停止
                                 message = message + "\n負けました。Enterキーで終了"
 
             elif game_state in ["clear", "lose"] and event.key == pygame.K_RETURN:
